@@ -230,13 +230,12 @@ public class DefaultBinaryCollection<T extends SoftwareComponent> implements Bin
             });
         }
 
-        @Nullable
         @Override
-        public S getOrNull() {
+        protected Value<S> calculateOwnValue() {
             if (ambiguous) {
                 throw new IllegalStateException("Found multiple elements");
             }
-            return match;
+            return Value.of(match);
         }
     }
 

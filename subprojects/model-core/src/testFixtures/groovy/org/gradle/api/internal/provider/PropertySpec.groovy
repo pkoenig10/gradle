@@ -112,7 +112,7 @@ abstract class PropertySpec<T> extends ProviderSpec<T> {
     }
 
     def "can set value using provider"() {
-        def provider = provider(someValue(), someValue(), someOtherValue(), someValue())
+        def provider = supplierWithValues(someValue(), someValue(), someOtherValue(), someValue())
 
         given:
         def property = propertyWithNoValue()
@@ -183,7 +183,7 @@ abstract class PropertySpec<T> extends ProviderSpec<T> {
     }
 
     def "can set untyped using provider"() {
-        def provider = provider(someValue(), someValue())
+        def provider = supplierWithValues(someValue(), someValue())
 
         given:
         def property = propertyWithNoValue()
@@ -209,7 +209,7 @@ abstract class PropertySpec<T> extends ProviderSpec<T> {
     }
 
     def "convention provider is used before value has been set"() {
-        def provider = provider(someValue(), someOtherValue(), someValue())
+        def provider = supplierWithValues(someValue(), someOtherValue(), someValue())
         def property = propertyWithDefaultValue()
 
         when:
@@ -229,7 +229,7 @@ abstract class PropertySpec<T> extends ProviderSpec<T> {
     }
 
     def "property has no value when convention provider has no value"() {
-        def provider = provider()
+        def provider = supplierWithValues()
         def property = propertyWithDefaultValue()
 
         when:
@@ -247,7 +247,7 @@ abstract class PropertySpec<T> extends ProviderSpec<T> {
     }
 
     def "reports the source of convention provider when value is missing and source is known"() {
-        def provider = sourceWithNoValue(Describables.of("<source>"))
+        def provider = supplierWithNoValue(Describables.of("<source>"))
         def property = propertyWithDefaultValue()
 
         given:
@@ -263,7 +263,7 @@ The value of this property is derived from: <source>""")
     }
 
     def "can replace convention value before value has been set"() {
-        def provider = provider(someOtherValue())
+        def provider = supplierWithValues(someOtherValue())
         def property = propertyWithDefaultValue()
 
         when:
@@ -301,7 +301,7 @@ The value of this property is derived from: <source>""")
     }
 
     def "convention provider ignored after value has been set"() {
-        def provider = broken()
+        def provider = brokenSupplier()
 
         def property = propertyWithDefaultValue()
         property.set(someValue())
@@ -327,7 +327,7 @@ The value of this property is derived from: <source>""")
     }
 
     def "convention provider is used after value has been set to null"() {
-        def provider = provider(someOtherValue(), someOtherValue())
+        def provider = supplierWithValues(someOtherValue(), someOtherValue())
 
         def property = propertyWithDefaultValue()
         property.convention(provider)
@@ -350,7 +350,7 @@ The value of this property is derived from: <source>""")
     }
 
     def "convention provider ignored after value has been set using provider with no value"() {
-        def provider = broken()
+        def provider = brokenSupplier()
 
         def property = propertyWithDefaultValue()
         property.set(Providers.notDefined())
@@ -464,7 +464,39 @@ The value of this property is derived from: <source>""")
 
         then:
         def e = thrown(MissingValueException)
-        e.message == "Cannot query the value of ${displayName} because it has no value available."
+        e.message == "Cannot query the value of this provider because it has no value available."
+    }
+
+    def "reports the source of mapped provider when value is missing and source is known"() {
+        def transformer = Mock(Transformer)
+        def property = propertyWithNoValue()
+        property.attachDisplayName(Describables.of("<a>"))
+
+        def provider = property.map(transformer)
+
+        when:
+        provider.get()
+
+        then:
+        def e = thrown(MissingValueException)
+        e.message == TextUtil.toPlatformLineSeparators("""Cannot query the value of this provider because it has no value available.
+The value of this provider is derived from: <a>""")
+    }
+
+    def "reports the source of flat mapped provider when value is missing and source is known"() {
+        def transformer = Mock(Transformer)
+        def property = propertyWithNoValue()
+        property.attachDisplayName(Describables.of("<a>"))
+
+        def provider = property.flatMap(transformer)
+
+        when:
+        provider.get()
+
+        then:
+        def e = thrown(MissingValueException)
+        e.message == TextUtil.toPlatformLineSeparators("""Cannot query the value of this provider because it has no value available.
+The value of this provider is derived from: <a>""")
     }
 
     def "can finalize value when no value defined"() {
@@ -1651,7 +1683,7 @@ The value of this property is derived from:
 
     def "has build dependencies when value is provider with producer task"() {
         def producer = "some task"
-        def provider = withProducer(producer)
+        def provider = supplierWithProducer(producer)
         def context = Mock(TaskDependencyResolveContext)
         def property = propertyWithNoValue()
         property.set(provider)
@@ -1681,7 +1713,7 @@ The value of this property is derived from:
 
     def "has content producer when value is provider with content producer"() {
         def task = Mock(Task)
-        def provider = contentProducedByTask(task)
+        def provider = supplierWithProducer(task)
 
         def property = propertyWithNoValue()
         property.set(provider)
@@ -1723,7 +1755,7 @@ The value of this property is derived from:
 
     def "mapped value has value producer when value is provider with content producer"() {
         def task = Mock(Task)
-        def provider = contentProducedByTask(task)
+        def provider = supplierWithProducer(task)
 
         def property = propertyWithNoValue()
         property.set(provider)
@@ -1772,46 +1804,28 @@ The value of this property is derived from:
         assert producers == [task]
     }
 
-    ProviderInternal<T> broken() {
-        return new AbstractMinimalProvider<T>() {
-            @Override
-            Class<T> getType() {
-                return PropertySpec.this.type()
-            }
-
-            @Override
-            T getOrNull() {
-                throw new RuntimeException("broken!")
-            }
-        }
-    }
-
     /**
-     * A provider with no value and the given display name
+     * A dummy provider with no value and the given display name
      */
-    ProviderInternal<T> sourceWithNoValue(DisplayName displayName) {
+    ProviderInternal<T> supplierWithNoValue(DisplayName displayName) {
         return new NoValueProvider<T>(type(), displayName)
     }
 
     /**
-     * A provider with no value and the given display name
+     * A dummy provider with no value and the given display name
      */
-    ProviderInternal<T> sourceWithNoValue(Class type, DisplayName displayName) {
+    ProviderInternal<T> supplierWithNoValue(Class type, DisplayName displayName) {
         return new NoValueProvider<T>(type, displayName)
     }
 
     /**
-     * A provider that provides one of given values each time it is queried, in the order given.
+     * A dummy provider that provides one of given values each time it is queried, in the order given.
      */
-    ProviderInternal<T> provider(T... values) {
+    ProviderInternal<T> supplierWithValues(T... values) {
         return new TestProvider<T>(type(), values as List<T>, null)
     }
 
-    ProviderInternal<T> withProducer(Object value) {
-        return new TestProvider<T>(type(), [], value)
-    }
-
-    ProviderInternal<T> contentProducedByTask(Task producer) {
+    ProviderInternal<T> supplierWithProducer(Object producer) {
         return new TestProvider<T>(type(), [], producer)
     }
 
@@ -1830,8 +1844,8 @@ The value of this property is derived from:
         }
 
         @Override
-        T getOrNull() {
-            return null
+        protected Value<? extends T> calculateOwnValue() {
+            return Value.missing()
         }
 
         @Override
@@ -1869,8 +1883,8 @@ The value of this property is derived from:
         }
 
         @Override
-        T getOrNull() {
-            return values.hasNext() ? values.next() : null
+        protected Value<? extends T> calculateOwnValue() {
+            return values.hasNext() ? Value.of(values.next()) : Value.missing()
         }
     }
 
