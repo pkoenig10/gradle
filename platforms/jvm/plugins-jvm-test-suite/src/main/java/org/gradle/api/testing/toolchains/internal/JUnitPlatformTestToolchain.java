@@ -48,8 +48,6 @@ abstract public class JUnitPlatformTestToolchain<T extends JUnitPlatformToolchai
 
     @Override
     public Iterable<Dependency> getRuntimeOnlyDependencies() {
-        // Use the version of the platform launcher specified in the parameters if present, otherwise assume that the version is provided via a bom
-        // referenced by the test engine or otherwise provided in the dependencies.
-        return ImmutableSet.of(getDependencyFactory().create(GROUP_NAME + getParameters().getPlatformVersion().map(version -> ":" + version).getOrElse("")));
+        return ImmutableSet.of(getDependencyFactory().create(GROUP_NAME + getParameters().getPlatformVersion().get()));
     }
 }

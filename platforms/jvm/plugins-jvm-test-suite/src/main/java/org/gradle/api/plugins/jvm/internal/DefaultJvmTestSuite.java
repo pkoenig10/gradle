@@ -96,6 +96,7 @@ public abstract class DefaultJvmTestSuite implements JvmTestSuite {
         } else {
             JvmTestToolchain<? extends JUnitJupiterToolchainParameters> toolchain = toolchainFactory.getOrCreate(JUnitJupiterTestToolchain.class);
             getTestToolchain().convention(toolchain);
+            parameters.getPlatformVersion().convention(JUnitPlatformTestToolchain.DEFAULT_VERSION);
             toolchain.getParameters().getJupiterVersion().convention(JUnitJupiterTestToolchain.DEFAULT_VERSION);
         }
 
@@ -215,6 +216,7 @@ public abstract class DefaultJvmTestSuite implements JvmTestSuite {
 
     private void useJUnitJupiter(Action<JUnitJupiterToolchainParameters> action) {
         setToolchainAndConfigure(JUnitJupiterTestToolchain.class, parameters -> {
+            parameters.getPlatformVersion().convention(JUnitPlatformTestToolchain.DEFAULT_VERSION);
             parameters.getJupiterVersion().convention(JUnitJupiterTestToolchain.DEFAULT_VERSION);
             action.execute(parameters);
         });
@@ -237,6 +239,7 @@ public abstract class DefaultJvmTestSuite implements JvmTestSuite {
 
     private void useSpock(Action<SpockToolchainParameters> action) {
         setToolchainAndConfigure(SpockTestToolchain.class, parameters -> {
+            parameters.getPlatformVersion().convention(JUnitPlatformTestToolchain.DEFAULT_VERSION);
             parameters.getSpockVersion().convention(SpockTestToolchain.DEFAULT_VERSION);
             action.execute(parameters);
         });
@@ -259,6 +262,7 @@ public abstract class DefaultJvmTestSuite implements JvmTestSuite {
 
     private void useKotlinTest(Action<KotlinTestToolchainParameters> action) {
         setToolchainAndConfigure(KotlinTestTestToolchain.class, parameters -> {
+            parameters.getPlatformVersion().convention(JUnitPlatformTestToolchain.DEFAULT_VERSION);
             parameters.getKotlinTestVersion().convention(KotlinTestTestToolchain.DEFAULT_VERSION);
             action.execute(parameters);
         });
